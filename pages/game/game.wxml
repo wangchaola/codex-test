@@ -1,0 +1,27 @@
+<view class="container">
+  <view class="hud">
+    <view class="hud-item">关卡：{{level}} / 100</view>
+    <view class="hud-item">分数：{{score}}</view>
+    <view class="hud-item">剩余：{{timeLeft}}s</view>
+  </view>
+  <view class="progress">
+    <view class="progress-bar" style="width: {{timePercent}}%;"></view>
+  </view>
+
+  <canvas
+    class="game-canvas"
+    canvas-id="gameCanvas"
+    bindtap="handleCanvasTap"
+    style="width: {{canvasWidth}}px; height: {{canvasHeight}}px;"
+  ></canvas>
+
+  <view class="controls">
+    <button class="primary" bindtap="handleStart" disabled="{{isRunning}}">开始</button>
+    <button class="ghost" bindtap="handlePause" disabled="{{!isRunning}}">暂停</button>
+    <button class="ghost" bindtap="handleReset">重置</button>
+  </view>
+
+  <view class="tips">
+    小人物自动奔跑，点击赛道切换跑道。金币加分，炸弹减分。每关 30 秒，难度随关卡提升。
+  </view>
+</view>
