@@ -1,0 +1,77 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24rpx;
+  gap: 20rpx;
+}
+
+.hud {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  gap: 12rpx;
+}
+
+.progress {
+  width: 100%;
+  height: 16rpx;
+  background: rgba(148, 163, 184, 0.2);
+  border-radius: 999rpx;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #38bdf8, #facc15);
+  border-radius: 999rpx;
+  transition: width 0.3s ease;
+}
+
+.hud-item {
+  background: rgba(30, 41, 59, 0.85);
+  border-radius: 16rpx;
+  padding: 12rpx 18rpx;
+  font-size: 24rpx;
+  color: #e2e8f0;
+  flex: 1;
+  text-align: center;
+}
+
+.game-canvas {
+  width: 100%;
+  height: 800rpx;
+  background: #020617;
+  border-radius: 24rpx;
+  box-shadow: 0 12rpx 30rpx rgba(15, 23, 42, 0.45);
+}
+
+.controls {
+  display: flex;
+  gap: 20rpx;
+}
+
+button.primary {
+  background: #38bdf8;
+  color: #0f172a;
+  border-radius: 999rpx;
+  font-weight: 600;
+}
+
+button.ghost {
+  background: transparent;
+  border: 1px solid #38bdf8;
+  color: #38bdf8;
+  border-radius: 999rpx;
+}
+
+button[disabled] {
+  opacity: 0.5;
+}
+
+.tips {
+  font-size: 24rpx;
+  color: #cbd5f5;
+  text-align: center;
+  line-height: 1.5;
+}
