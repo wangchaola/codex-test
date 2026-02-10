@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>年会抽奖大转盘</title>
+    <style>
+      :root {
+        --bg: #0f172a;
+        --card: #111827;
+        --text: #e5e7eb;
+        --muted: #9ca3af;
+        --primary: #22d3ee;
+        --accent: #f59e0b;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+        background: radial-gradient(circle at top, #1f2937, var(--bg));
+        color: var(--text);
+        min-height: 100vh;
+      }
+      .wrap {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 20px;
+        display: grid;
+        grid-template-columns: 360px 1fr;
+        gap: 20px;
+      }
+      .panel, .wheel-area {
+        background: rgba(17, 24, 39, 0.9);
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        border-radius: 16px;
+        padding: 16px;
+      }
+      h1 { margin: 0 0 12px; font-size: 22px; }
+      .desc { margin: 0 0 12px; color: var(--muted); font-size: 14px; }
+      label { display: block; margin: 12px 0 6px; font-weight: 600; }
+      textarea, select, input[type="checkbox"] {
+        width: 100%;
+      }
+      textarea {
+        background: #0b1220;
+        color: var(--text);
+        border: 1px solid #334155;
+        border-radius: 10px;
+        padding: 10px;
+        min-height: 120px;
+        resize: vertical;
+        font-size: 14px;
+      }
+      select {
+        background: #0b1220;
+        color: var(--text);
+        border: 1px solid #334155;
+        border-radius: 10px;
+        padding: 8px;
+      }
+      .row { display: flex; gap: 10px; margin-top: 12px; }
+      button {
+        border: none;
+        border-radius: 999px;
+        padding: 10px 16px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .btn-primary { background: linear-gradient(90deg, var(--primary), #38bdf8); color: #0b1220; }
+      .btn-warn { background: linear-gradient(90deg, var(--accent), #fb7185); color: white; }
+      .btn-ghost { background: transparent; border: 1px solid #334155; color: var(--text); }
+      .wheel-area {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .wheel-box {
+        position: relative;
+        width: min(76vw, 520px);
+        aspect-ratio: 1;
+        margin-top: 8px;
+      }
+      canvas { width: 100%; height: 100%; }
+      .pointer {
+        position: absolute;
+        left: 50%;
+        top: -2px;
+        transform: translateX(-50%);
+        width: 0;
+        height: 0;
+        border-left: 18px solid transparent;
+        border-right: 18px solid transparent;
+        border-top: 34px solid #f87171;
+        filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.45));
+      }
+      .result {
+        margin-top: 14px;
+        text-align: center;
+      }
+      .result b { color: #fde68a; }
+      .list {
+        width: 100%;
+        margin-top: 12px;
+        border-top: 1px solid #334155;
+        padding-top: 10px;
+        font-size: 14px;
+        color: var(--muted);
+      }
+      .check {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 10px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      @media (max-width: 900px) {
+        .wrap { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <section class="panel">
+        <h1>🎉 年会抽奖大转盘</h1>
+        <p class="desc">可配置奖品和人员，点击“开始抽奖”随机抽出“人员 + 奖品”。</p>
+
+        <label for="prizes">奖品配置（每行一个）</label>
+        <textarea id="prizes">特等奖｜MacBook Pro 1台
+一等奖｜iPhone 16 2台
+二等奖｜AirPods 6个
+三等奖｜京东卡 20份</textarea>
+
+        <label for="people">人员配置（每行一个）</label>
+        <textarea id="people">张三
+李四
+王五
+赵六
+钱七
+孙八
+周九
+吴十</textarea>
+
+        <div class="check">
+          <input id="removeWinner" type="checkbox" checked style="width:auto" />
+          <span>抽中后从人员池移除（避免重复中奖）</span>
+        </div>
+
+        <div class="row">
+          <button class="btn-ghost" id="applyBtn">应用配置</button>
+          <button class="btn-warn" id="resetBtn">重置默认</button>
+        </div>
+      </section>
+
+      <section class="wheel-area">
+        <div class="wheel-box">
+          <div class="pointer"></div>
+          <canvas id="wheel" width="600" height="600"></canvas>
+        </div>
+        <div class="row">
+          <select id="prizeSelect"></select>
+          <button class="btn-primary" id="spinBtn">开始抽奖</button>
+        </div>
+        <div class="result" id="result">等待抽奖...</div>
+        <div class="list" id="stat"></div>
+      </section>
+    </div>
+
+    <script>
+      const defaultPrizes = `特等奖｜MacBook Pro 1台\n一等奖｜iPhone 16 2台\n二等奖｜AirPods 6个\n三等奖｜京东卡 20份`;
+      const defaultPeople = `张三\n李四\n王五\n赵六\n钱七\n孙八\n周九\n吴十`;
+
+      const colors = ["#22d3ee", "#60a5fa", "#34d399", "#f59e0b", "#fb7185", "#a78bfa", "#f472b6", "#38bdf8"];
+
+      const state = {
+        prizes: [],
+        people: [],
+        rotation: 0,
+        spinning: false,
+      };
+
+      const wheel = document.getElementById("wheel");
+      const ctx = wheel.getContext("2d");
+      const prizesEl = document.getElementById("prizes");
+      const peopleEl = document.getElementById("people");
+      const prizeSelectEl = document.getElementById("prizeSelect");
+      const resultEl = document.getElementById("result");
+      const statEl = document.getElementById("stat");
+      const spinBtn = document.getElementById("spinBtn");
+
+      function parseLines(text) {
+        return text
+          .split("\n")
+          .map((x) => x.trim())
+          .filter(Boolean);
+      }
+
+      function applyConfig() {
+        state.prizes = parseLines(prizesEl.value);
+        state.people = parseLines(peopleEl.value);
+
+        prizeSelectEl.innerHTML = "";
+        state.prizes.forEach((p) => {
+          const option = document.createElement("option");
+          option.value = p;
+          option.textContent = p;
+          prizeSelectEl.appendChild(option);
+        });
+
+        drawWheel();
+        updateStat();
+      }
+
+      function resetDefault() {
+        prizesEl.value = defaultPrizes;
+        peopleEl.value = defaultPeople;
+        applyConfig();
+        resultEl.textContent = "已恢复默认配置";
+      }
+
+      function updateStat() {
+        statEl.textContent = `当前奖品：${state.prizes.length} 项 ｜ 当前人员池：${state.people.length} 人`;
+      }
+
+      function drawWheel() {
+        const { prizes, rotation } = state;
+        const cx = 300;
+        const cy = 300;
+        const r = 270;
+
+        ctx.clearRect(0, 0, 600, 600);
+
+        if (!prizes.length) {
+          ctx.fillStyle = "#94a3b8";
+          ctx.font = "24px sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText("请先配置奖品", cx, cy);
+          return;
+        }
+
+        const slice = (Math.PI * 2) / prizes.length;
+
+        for (let i = 0; i < prizes.length; i++) {
+          const start = rotation + i * slice - Math.PI / 2;
+          const end = start + slice;
+
+          ctx.beginPath();
+          ctx.moveTo(cx, cy);
+          ctx.arc(cx, cy, r, start, end);
+          ctx.closePath();
+          ctx.fillStyle = colors[i % colors.length];
+          ctx.fill();
+
+          ctx.save();
+          ctx.translate(cx, cy);
+          ctx.rotate(start + slice / 2);
+          ctx.fillStyle = "#0f172a";
+          ctx.font = "bold 20px sans-serif";
+          ctx.textAlign = "right";
+          const text = prizes[i].length > 14 ? prizes[i].slice(0, 14) + "…" : prizes[i];
+          ctx.fillText(text, r - 20, 8);
+          ctx.restore();
+        }
+
+        ctx.beginPath();
+        ctx.arc(cx, cy, 65, 0, Math.PI * 2);
+        ctx.fillStyle = "#0f172a";
+        ctx.fill();
+        ctx.fillStyle = "#e2e8f0";
+        ctx.font = "bold 24px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("抽奖", cx, cy + 8);
+      }
+
+      function pickWinner() {
+        if (!state.people.length) {
+          alert("人员池为空，请先配置人员");
+          return null;
+        }
+        const idx = Math.floor(Math.random() * state.people.length);
+        const winner = state.people[idx];
+        if (document.getElementById("removeWinner").checked) {
+          state.people.splice(idx, 1);
+          peopleEl.value = state.people.join("\n");
+        }
+        return winner;
+      }
+
+      function spin() {
+        if (state.spinning) return;
+        if (!state.prizes.length) {
+          alert("请先配置奖品");
+          return;
+        }
+
+        const selectedPrize = prizeSelectEl.value || state.prizes[0];
+        const prizeIndex = Math.max(0, state.prizes.indexOf(selectedPrize));
+        const winner = pickWinner();
+        if (!winner) return;
+
+        state.spinning = true;
+        spinBtn.disabled = true;
+
+        const slice = (Math.PI * 2) / state.prizes.length;
+        const targetCenter = prizeIndex * slice + slice / 2;
+        const target = -Math.PI / 2 - targetCenter;
+        const turns = Math.PI * 2 * (5 + Math.random() * 2);
+        const finalRotation = state.rotation + turns + ((target - state.rotation) % (Math.PI * 2));
+
+        const duration = 4200;
+        const start = performance.now();
+        const from = state.rotation;
+
+        function animate(now) {
+          const t = Math.min(1, (now - start) / duration);
+          const eased = 1 - Math.pow(1 - t, 3);
+          state.rotation = from + (finalRotation - from) * eased;
+          drawWheel();
+          if (t < 1) {
+            requestAnimationFrame(animate);
+          } else {
+            state.rotation = finalRotation % (Math.PI * 2);
+            drawWheel();
+            resultEl.innerHTML = `🎊 本轮中奖：<b>${winner}</b>，奖品：<b>${selectedPrize}</b>`;
+            state.spinning = false;
+            spinBtn.disabled = false;
+            updateStat();
+          }
+        }
+
+        requestAnimationFrame(animate);
+      }
+
+      document.getElementById("applyBtn").addEventListener("click", applyConfig);
+      document.getElementById("resetBtn").addEventListener("click", resetDefault);
+      spinBtn.addEventListener("click", spin);
+
+      applyConfig();
+    </script>
+  </body>
+</html>
